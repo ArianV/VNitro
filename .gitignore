@@ -1,0 +1,43 @@
+# Build artifacts
+bin/
+obj/
+*.exe
+*.dll
+*.pdb
+*.mdb
+
+
+# IDE
+.vs/
+*.user
+*.suo
+*.rsuser
+.idea/
+*.iml
+
+
+# Logs & caches
+*.log
+[Tt]emp/
+[Ll]ogs/
+
+
+# NuGet
+*.nupkg
+packages/
+.nuget/
+
+
+# Rider/Resharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+
+
+# Unity/Il2Cpp cache (if referenced)
+Library/
+ProjectSettings/
+
+
+# OS
+.DS_Store
+Thumbs.db
