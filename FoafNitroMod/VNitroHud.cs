@@ -89,8 +89,8 @@ namespace FoafNitroMod
             ShadowLabel(new Rect(textLeft, titleY, panelW - (textLeft - x) - 12f, 28f * _scale), title, _titleStyle);
 
             string hint = (!_boosting && _nitro < _minBoostPct)
-                ? "LOW: Need ≥ 20% to boost   •   F8 layout  F9 hide"
-                : "Hold Left Shift to boost   •   F8 layout  F9 hide";
+                ? "LOW NITRO"
+                : "Hold Left Shift to boost";
             ShadowLabel(new Rect(textLeft, titleY + (26f * _scale), panelW - (textLeft - x) - 12f, 22f * _scale), hint, _hintStyle);
 
             float barLeft = textLeft;
@@ -212,7 +212,7 @@ namespace FoafNitroMod
                         {
                             tex.wrapMode = TextureWrapMode.Clamp;
                             _icon = tex;
-                            MelonLogger.Msg($"[VNitroHUD] Loaded icon: {p}");
+                            // MelonLogger.Msg($"[VNitroHUD] Loaded icon: {p}");
                         }
                     }
                     catch (System.Exception ex)

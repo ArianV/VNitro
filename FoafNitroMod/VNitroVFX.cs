@@ -54,7 +54,8 @@ namespace FoafNitroMod
                 _haveBasePos = true;
             }
 
-            MelonLogger.Msg($"{LogTag} Camera bound. Base FOV={_baseFov:0.0}");
+            // Camera Log
+            // MelonLogger.Msg($"{LogTag} Camera bound. Base FOV={_baseFov:0.0}");
         }
 
         internal static void Detach() => Reset();

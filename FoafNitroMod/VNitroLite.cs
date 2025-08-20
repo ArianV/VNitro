@@ -37,7 +37,7 @@ namespace FoafNitroMod
         public override void OnInitializeMelon()
         {
             Instance = this;
-            LoggerInstance.Msg("[VNitro] init…");
+            LoggerInstance.Msg("[VNitro] initializing");
 
             _harmony = new HarmonyLib.Harmony("com.foaf.vnitrolite");
 
@@ -83,7 +83,7 @@ namespace FoafNitroMod
                 {
                     _isBoosting = false;
                     _regenDelayTimer = RegenDelaySeconds;
-                    LoggerInstance.Msg("[VNitro] Tank empty — starting 3s cooldown.");
+                    // LoggerInstance.Msg("[VNitro] Tank empty — starting 3s cooldown.");
                 }
             }
             else
@@ -129,7 +129,7 @@ namespace FoafNitroMod
             }
 
             _harmony!.Patch(original, postfix: new HarmonyMethod(postfix));
-            LoggerInstance.Msg($"[VNitro] Patched {typeName}.{methodName} (postfix)");
+            // LoggerInstance.Msg($"[VNitro] Patched {typeName}.{methodName} (postfix)");
         }
 
         public static void EnterVehicle_Postfix(object __instance)
@@ -150,7 +150,7 @@ namespace FoafNitroMod
                 VNitroVFX.SetActive(true);
             }
 
-            self.LoggerInstance.Msg("Entered vehicle: " + __instance.GetType().FullName);
+            // self.LoggerInstance.Msg("Entered vehicle: " + __instance.GetType().FullName);
             VNitroHud.SetActive(true);
             VNitroAudio.SetActive(true);
         }
@@ -160,7 +160,7 @@ namespace FoafNitroMod
             var self = Instance;
             if (self == null) return;
 
-            self.LoggerInstance.Msg("Exited vehicle: " + __instance?.GetType().FullName);
+            // self.LoggerInstance.Msg("Exited vehicle: " + __instance?.GetType().FullName);
 
             self._isBoosting = false;
             self._regenDelayTimer = 0f;
@@ -194,7 +194,7 @@ namespace FoafNitroMod
 
             if (!self._loggedFallback)
             {
-                self.LoggerInstance.Msg("[VNitro] Fallback path active: applying Rigidbody acceleration.");
+                // self.LoggerInstance.Msg("[VNitro] Fallback path active: applying Rigidbody acceleration.");
                 self._loggedFallback = true;
             }
 
