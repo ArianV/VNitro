@@ -7,19 +7,16 @@ namespace FoafNitroMod
 {
     internal static class VNitroHud
     {
-        // -------- Public API --------
         internal static void SetActive(bool isInVehicle)
         {
             _inVehicle = isInVehicle;
 
-            // keep the hiss audio in sync with vehicle state
             VNitroAudio.SetActive(isInVehicle);
 
             if (!isInVehicle)
             {
-                // ensure hiss fades out immediately when we leave the vehicle
                 VNitroAudio.SetBoosting(false);
-                _sheenOffset = 0f; // reset bar sheen animation (optional)
+                _sheenOffset = 0f;
             }
         }
 
@@ -28,24 +25,19 @@ namespace FoafNitroMod
 
         internal static void OnUpdate()
         {
-            // Toggle HUD visibility
             if (Input.GetKeyDown(KeyCode.F9)) _visible = !_visible;
 
-            // Quick layout flip (Bottom <-> Top)
             if (Input.GetKeyDown(KeyCode.F8)) _dockBottom = !_dockBottom;
 
-            // Scale (hold Shift for finer steps)
             float step = Input.GetKey(KeyCode.LeftShift) ? 0.02f : 0.05f;
             if (Input.GetKeyDown(KeyCode.Equals) || Input.GetKeyDown(KeyCode.KeypadPlus)) _scale = Mathf.Clamp(_scale + step, 0.6f, 1.6f);
             if (Input.GetKeyDown(KeyCode.Minus) || Input.GetKeyDown(KeyCode.KeypadMinus)) _scale = Mathf.Clamp(_scale - step, 0.6f, 1.6f);
 
-            // Opacity (glass panel)
             if (Input.GetKeyDown(KeyCode.RightBracket)) _panelOpacity = Mathf.Clamp01(_panelOpacity + 0.05f);
             if (Input.GetKeyDown(KeyCode.LeftBracket)) _panelOpacity = Mathf.Clamp01(_panelOpacity - 0.05f);
 
             if (!_inVehicle) return;
 
-            // Animate sheen based on boosting state
             if (_boosting)
                 _sheenOffset = (_sheenOffset + Time.deltaTime * 0.7f) % 1f;
             else
@@ -57,7 +49,6 @@ namespace FoafNitroMod
             if (!_visible || !_inVehicle) return;
             EnsureAssets();
 
-            // Layout (responsive & scalable)
             float baseW = 420f, baseH = 94f;
             float panelW = baseW * _scale;
             float panelH = baseH * _scale;
@@ -68,22 +59,18 @@ namespace FoafNitroMod
                 ? (Screen.height - panelH - margin)
                 : margin;
 
-            // Soft drop shadow
             var shadowR = new Rect(x, y + (4f * _scale), panelW, panelH);
             GUI.color = new Color(0f, 0f, 0f, 0.25f * _panelOpacity);
             GUI.DrawTexture(shadowR, _roundedPanelTex, ScaleMode.StretchToFill, true);
             GUI.color = Color.white;
 
-            // Glass panel
             GUI.color = new Color(1f, 1f, 1f, _panelOpacity);
             GUI.DrawTexture(new Rect(x, y, panelW, panelH), _panelGradTex, ScaleMode.StretchToFill, true);
             GUI.DrawTexture(new Rect(x, y, panelW, panelH), _roundedPanelTex, ScaleMode.StretchToFill, true);
-            // Subtle top highlight line
             GUI.color = new Color(1f, 1f, 1f, 0.12f * _panelOpacity);
             GUI.DrawTexture(new Rect(x, y, panelW, 1.5f * _scale), _whiteTex);
             GUI.color = Color.white;
 
-            // Icon
             float iconSize = 56f * _scale;
             float iconX = x + (14f * _scale);
             float iconY = y + (panelH - iconSize) * 0.5f;
@@ -94,22 +81,18 @@ namespace FoafNitroMod
                 GUI.color = Color.white;
             }
 
-            // Text
             float textLeft = iconX + (_icon != null ? (iconSize + 16f * _scale) : (8f * _scale));
             float titleY = y + (10f * _scale);
 
-            // Title + percent
             int pct = Mathf.RoundToInt(_nitro * 100f);
             string title = $"NITRO   {pct}%";
             ShadowLabel(new Rect(textLeft, titleY, panelW - (textLeft - x) - 12f, 28f * _scale), title, _titleStyle);
 
-            // Hint (also show LOW when under threshold)
             string hint = (!_boosting && _nitro < _minBoostPct)
                 ? "LOW: Need ≥ 20% to boost   •   F8 layout  F9 hide"
                 : "Hold Left Shift to boost   •   F8 layout  F9 hide";
             ShadowLabel(new Rect(textLeft, titleY + (26f * _scale), panelW - (textLeft - x) - 12f, 22f * _scale), hint, _hintStyle);
 
-            // Bar
             float barLeft = textLeft;
             float barTop = y + panelH - (26f * _scale);
             float barW = panelW - (barLeft - x) - (12f * _scale);
@@ -118,32 +101,25 @@ namespace FoafNitroMod
             DrawModernBar(new Rect(barLeft, barTop, barW, barH), _nitro);
         }
 
-        // --------- visuals ---------
         private static void DrawModernBar(Rect r, float pct)
         {
-            // Bar background (rounded + subtle border)
             GUI.color = new Color(1f, 1f, 1f, 0.28f);
             GUI.DrawTexture(r, _roundedBarTex, ScaleMode.StretchToFill, true);
 
-            // Fill
             float w = Mathf.Round(pct * r.width);
             if (w > 1f)
             {
                 var fillRect = new Rect(r.x, r.y, w, r.height);
 
-                // If we're below threshold, dim the gradient slightly
                 float dim = pct < _minBoostPct ? 0.65f : 1f;
 
-                // Gradient fill
                 GUI.color = new Color(1f, 1f, 1f, dim);
                 GUI.DrawTexture(fillRect, _barGradTex, ScaleMode.StretchToFill, true);
 
-                // Gloss (top inner highlight)
                 GUI.color = new Color(1f, 1f, 1f, 0.18f * dim);
                 GUI.DrawTexture(new Rect(fillRect.x, fillRect.y, fillRect.width, fillRect.height * 0.45f), _whiteTex);
                 GUI.color = Color.white;
 
-                // Animated sheen
                 if (_sheenOffset > 0f && pct > 0.1f && _boosting)
                 {
                     float sheenW = Mathf.Min(80f * _scale, fillRect.width * 0.6f);
@@ -155,12 +131,10 @@ namespace FoafNitroMod
                 }
             }
 
-            // Outer border
             GUI.color = new Color(1f, 1f, 1f, 0.10f);
             GUI.DrawTexture(r, _roundedBarBorderTex, ScaleMode.StretchToFill, true);
             GUI.color = Color.white;
 
-            // Tiny notch marker at 20% (visual cue)
             float notchX = r.x + r.width * _minBoostPct;
             var notch = new Rect(notchX - 1f, r.y - 2f, 2f, r.height + 4f);
             GUI.color = new Color(1f, 1f, 1f, 0.25f);
@@ -179,7 +153,6 @@ namespace FoafNitroMod
             GUI.Label(r, text, style);
         }
 
-        // --------- assets / setup ---------
         private static void EnsureAssets()
         {
             if (_titleStyle == null)
@@ -281,7 +254,6 @@ namespace FoafNitroMod
                 Color c;
                 if (mid.HasValue)
                 {
-                    // three-stop gradient (left -> mid at 0.5 -> right)
                     if (t < 0.5f)
                         c = Color.Lerp(left, mid.Value, t / 0.5f);
                     else
@@ -300,7 +272,6 @@ namespace FoafNitroMod
         {
             int size = radius * 2;
             var tex = new Texture2D(size, size, TextureFormat.ARGB32, false);
-            // draw a quarter circle mask and mirror via GUI scaling
             for (int y = 0; y < size; y++)
                 for (int x = 0; x < size; x++)
                 {
@@ -308,7 +279,6 @@ namespace FoafNitroMod
                     float dy = y - radius + 0.5f;
                     float dist = Mathf.Sqrt(dx * dx + dy * dy);
                     float edge = Mathf.Clamp01((radius - dist));
-                    // feather edge a bit
                     float a = Mathf.Clamp01(edge / 1.5f) * fill.a;
                     tex.SetPixel(x, y, new Color(fill.r, fill.g, fill.b, a));
                 }
@@ -335,24 +305,21 @@ namespace FoafNitroMod
             return tex;
         }
 
-        // --------- state ---------
         private static bool _inVehicle;
         private static bool _visible = true;
         private static bool _dockBottom = true;
         private static float _scale = 1f;
         private static float _panelOpacity = 0.9f;
 
-        private static float _nitro = 1f;           // 0..1 (set by VNitroLite)
-        private static bool _boosting = false;     // for sheen animation only
-        private const float _minBoostPct = 0.20f;   // visual cue + hint text
+        private static float _nitro = 1f;
+        private static bool _boosting = false;
+        private const float _minBoostPct = 0.20f;
 
-        private static float _sheenOffset = 0f; // 0..1
+        private static float _sheenOffset = 0f;
 
-        // Accent gradient (cyan -> purple)
         private static readonly Color _accentA = new Color(0.18f, 0.90f, 1f, 1f);
         private static readonly Color _accentB = new Color(0.67f, 0.41f, 1f, 1f);
 
-        // Styles & textures (lazy-inited, null-forgiven to keep warnings quiet)
         private static GUIStyle _titleStyle = null!;
         private static GUIStyle _hintStyle = null!;
 

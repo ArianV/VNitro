@@ -14,25 +14,21 @@ namespace FoafNitroMod
         public static VNitroLiteMod? Instance { get; private set; }
 
         private HarmonyLib.Harmony? _harmony;
-        private object? _current; // keep as object to avoid direct game-assembly ref
+        private object? _current;
         private Rigidbody? _rb;
 
-        // Rigidbody-based fallback boost
         private const float RbAccelBoost = 9f;
         private const float RbVelNudgePerSec = 5f;
         private const float MaxAssistSpeed = 25f;
 
-        // Nitro system
-        private float _nitro01 = 1f;               // 0..1
-        private const float DrainPerSec = 0.70f;   // while boosting
-        private const float RechargePerSec = 0.18f; // while not boosting
-        internal const float MinBoostPct = 0.30f;  // must have ≥20% to START boosting
+        private float _nitro01 = 1f;
+        private const float DrainPerSec = 0.70f;
+        private const float RechargePerSec = 0.18f;
+        internal const float MinBoostPct = 0.30f;
 
-        // Cooldown after empty
         private const float RegenDelaySeconds = 3f;
-        private float _regenDelayTimer = 0f;       // counts down while at 0 before recharge starts
+        private float _regenDelayTimer = 0f;
 
-        // Latch: once boosting starts, it continues until key released or tank hits 0
         private bool _isBoosting = false;
 
         private bool _loggedFallback;
@@ -56,15 +52,13 @@ namespace FoafNitroMod
         {
             bool inVehicle = _current != null;
 
-            // Keep HUD/Audio/VFX in sync with vehicle presence
             VNitroHud.SetActive(inVehicle);
             VNitroAudio.SetActive(inVehicle);
             VNitroVFX.SetActive(inVehicle);
-            VNitroVFX.OnUpdate(); // handles particle & FOV smoothing each frame
+            VNitroVFX.OnUpdate();
 
             if (!inVehicle)
             {
-                // Hard stop when leaving vehicle
                 if (_isBoosting) _isBoosting = false;
                 VNitroAudio.SetBoosting(false);
                 VNitroVFX.SetBoosting(false);
@@ -76,33 +70,28 @@ namespace FoafNitroMod
             float dt = Time.deltaTime;
             bool wantsBoost = Input.GetKey(_boostKey);
 
-            // START condition: only if not already boosting AND we have ≥ 20%
             if (!_isBoosting && wantsBoost && _nitro01 >= MinBoostPct)
                 _isBoosting = true;
 
-            // STOP conditions: key released OR tank empty
             if (_isBoosting && (!wantsBoost || _nitro01 <= 0f))
                 _isBoosting = false;
 
-            // Update tank
             if (_isBoosting)
             {
                 _nitro01 = Mathf.Max(0f, _nitro01 - DrainPerSec * dt);
                 if (_nitro01 <= 0f)
                 {
                     _isBoosting = false;
-                    _regenDelayTimer = RegenDelaySeconds; // start cooldown when we hit empty
+                    _regenDelayTimer = RegenDelaySeconds;
                     LoggerInstance.Msg("[VNitro] Tank empty — starting 3s cooldown.");
                 }
             }
             else
             {
-                // Not boosting: recharge, but only after cooldown if we are empty
                 if (_nitro01 <= 0f && _regenDelayTimer > 0f)
                 {
                     _regenDelayTimer -= dt;
                     if (_regenDelayTimer < 0f) _regenDelayTimer = 0f;
-                    // hold at 0 during cooldown
                 }
                 else
                 {
@@ -110,7 +99,6 @@ namespace FoafNitroMod
                 }
             }
 
-            // Drive audio + HUD + VFX
             VNitroAudio.SetBoosting(_isBoosting);
             VNitroVFX.SetBoosting(_isBoosting);
             VNitroHud.SetBoosting(_isBoosting);
@@ -154,7 +142,6 @@ namespace FoafNitroMod
             var comp = __instance as Component;
             self._rb = comp != null ? comp.gameObject.GetComponentInParent<Rigidbody>() : null;
 
-            // Attach hiss & VFX to this vehicle (3D + mixer copy if VehicleSound exists)
             if (comp != null)
             {
                 var go = comp.gameObject;
@@ -175,8 +162,8 @@ namespace FoafNitroMod
 
             self.LoggerInstance.Msg("Exited vehicle: " + __instance?.GetType().FullName);
 
-            self._isBoosting = false; // unlatch
-            self._regenDelayTimer = 0f; // cancel cooldown on exit (optional)
+            self._isBoosting = false;
+            self._regenDelayTimer = 0f;
 
             VNitroAudio.SetBoosting(false);
             VNitroAudio.SetActive(false);
@@ -200,7 +187,6 @@ namespace FoafNitroMod
             if (self == null) return;
             if (self._current == null || !ReferenceEquals(self._current, __instance)) return;
 
-            // Physics boost only while latched
             if (!self._isBoosting) return;
 
             var rb = self._rb;

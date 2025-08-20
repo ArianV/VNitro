@@ -1,11 +1,4 @@
-﻿// VNitroVFX.cs
-// Camera-only FX for VNitro (IL2CPP-safe).
-// - Bigger FOV kick (up to +14° at full intensity)
-// - Subtle roll wobble
-// - Tiny camera shake to mimic motion blur feel
-// No URP/PPS/UI/Particles.
-
-using UnityEngine;
+﻿using UnityEngine;
 using MelonLoader;
 
 namespace FoafNitroMod
@@ -14,7 +7,6 @@ namespace FoafNitroMod
     {
         private const string LogTag = "[VNitroVFX]";
 
-        // Camera + baselines
         private static Camera? _cam;
         private static float _baseFov = -1f;
         private static Quaternion _baseLocalRot;
@@ -22,19 +14,15 @@ namespace FoafNitroMod
         private static bool _haveBaseRot;
         private static bool _haveBasePos;
 
-        // State
         private static bool _active;
         private static bool _boosting;
-        private static float _boostIntensity; // 0..1
+        private static float _boostIntensity;
 
-        // Smoothing
         private static float _fovVel;
-        private static float _rollDeg;        // current roll in degrees
-        private static float _rollVelDeg;     // smooth velocity for roll
-        private static Vector3 _shakeOffset;  // current local position offset
-        private static Vector3 _shakeVel;     // smoothing vel for shake
-
-        // -------------- Public API --------------
+        private static float _rollDeg;
+        private static float _rollVelDeg;
+        private static Vector3 _shakeOffset;
+        private static Vector3 _shakeVel;
 
         internal static void SetActive(bool enable)
         {
@@ -90,7 +78,6 @@ namespace FoafNitroMod
             _boostIntensity = Mathf.Clamp01(intensity01);
         }
 
-        // VNitroLite may call this overload
         internal static void OnUpdate() => OnUpdate(Time.deltaTime);
 
         internal static void OnUpdate(float dt)
@@ -99,19 +86,15 @@ namespace FoafNitroMod
             if (_cam == null) _cam = Camera.main;
             if (_cam == null) return;
 
-            // --- Bigger FOV kick ---
             if (_baseFov > 0f)
             {
-                // At full intensity: +14°, lower intensity: +8° → +14°
                 float kick = Mathf.Lerp(8f, 14f, _boostIntensity);
                 float targetFov = _boosting ? (_baseFov + kick) : _baseFov;
                 _cam.fieldOfView = Mathf.SmoothDamp(_cam.fieldOfView, targetFov, ref _fovVel, 0.10f);
             }
 
-            // --- subtle roll wobble ---
             if (_haveBaseRot)
             {
-                // roll target up to ~3° + small wobble while boosting
                 float targetRoll = _boosting ? Mathf.Lerp(0f, 3.0f, _boostIntensity) : 0f;
 
                 if (_boosting)
@@ -126,24 +109,19 @@ namespace FoafNitroMod
                 _cam.transform.localRotation = _baseLocalRot * Quaternion.AngleAxis(_rollDeg, Vector3.forward);
             }
 
-            // --- tiny camera shake (fake blur vibe) ---
             if (_haveBasePos)
             {
-                float targetAmp = _boosting ? Mathf.Lerp(0f, 0.025f, _boostIntensity) : 0f; // up to 2.5cm
+                float targetAmp = _boosting ? Mathf.Lerp(0f, 0.025f, _boostIntensity) : 0f;
                 float t = Time.unscaledTime;
-                // Perlin-based shake (stable, no GC)
                 float nx = Mathf.PerlinNoise(t * 12.7f, 0.123f) - 0.5f;
                 float ny = Mathf.PerlinNoise(0.987f, t * 10.9f) - 0.5f;
                 Vector3 desired = new Vector3(nx, ny, 0f) * (targetAmp * 2f);
 
-                // Smooth towards desired
                 _shakeOffset = Vector3.SmoothDamp(_shakeOffset, desired, ref _shakeVel, 0.08f, Mathf.Infinity, dt);
 
                 _cam.transform.localPosition = _baseLocalPos + _shakeOffset;
             }
         }
-
-        // -------------- Internals --------------
 
         private static void Reset()
         {

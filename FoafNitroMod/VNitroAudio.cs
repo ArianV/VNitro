@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.IO;
-using HarmonyLib; // AccessTools
+using HarmonyLib;
 using MelonLoader;
 using MelonLoader.Utils;
 using UnityEngine;
@@ -12,11 +12,10 @@ namespace FoafNitroMod
     {
         private static GameObject? _go;
         private static AudioSource? _src;
-        private static AudioClip? _clip; // will be null until loaded
+        private static AudioClip? _clip;
         private static bool _active;
         private static bool _boosting;
 
-        // ------------------ Public API ------------------
         internal static void Initialize()
         {
             if (_go != null) return;
@@ -29,7 +28,6 @@ namespace FoafNitroMod
             _src.loop = true;
             _src.volume = 0.75f;
 
-            // Start async load of the hiss (WAV only)
             MelonCoroutines.Start(CoLoadClip());
         }
 
@@ -62,7 +60,6 @@ namespace FoafNitroMod
             }
         }
 
-        // Called by VNitroLite on EnterVehicle
         internal static void AttachToVehicle(GameObject? vehicleRoot)
         {
             try
@@ -85,7 +82,6 @@ namespace FoafNitroMod
             }
         }
 
-        // Called by VNitroLite on ExitVehicle
         internal static void Detach()
         {
             try
@@ -99,14 +95,11 @@ namespace FoafNitroMod
             }
         }
 
-        // ------------------ Clip loading (WAV only) ------------------
         private static IEnumerator CoLoadClip()
         {
             string baseDir = MelonEnvironment.MelonBaseDirectory;
-            // Your log shows you keep assets under Mods\VNitro\Audio
             string audioDir = Path.Combine(baseDir, "Mods", "VNitro", "Audio");
 
-            // Also accept lowercase folder name just in case
             string audioDirAlt = Path.Combine(baseDir, "Mods", "VNitro", "audio");
 
             string? chosen = null;
@@ -147,23 +140,21 @@ namespace FoafNitroMod
 
             yield break;
         }
-
-        // Robust WAV loader: PCM 16/24/32-bit and 32-bit float
         private static AudioClip LoadWavClip(string path)
         {
             byte[] data = File.ReadAllBytes(path);
             int p = 0;
 
-            string riff = ReadString(data, ref p, 4); // "RIFF"
+            string riff = ReadString(data, ref p, 4);
             int riffSize = ReadInt(data, ref p);
-            string wave = ReadString(data, ref p, 4); // "WAVE"
+            string wave = ReadString(data, ref p, 4);
             if (riff != "RIFF" || wave != "WAVE")
                 throw new Exception("Not a WAVE/RIFF file.");
 
             short channels = 0;
             int sampleRate = 0;
             short bitsPerSample = 0;
-            ushort formatTag = 0; // 1=PCM, 3=float
+            ushort formatTag = 0;
             byte[]? pcm = null;
 
             while (p + 8 <= data.Length)
@@ -182,7 +173,7 @@ namespace FoafNitroMod
                     bitsPerSample = ReadShort(data, ref p);
 
                     int fmtLeft = size - 16;
-                    if (fmtLeft > 0) p += fmtLeft; // skip extra fmt bytes
+                    if (fmtLeft > 0) p += fmtLeft; 
                 }
                 else if (id == "data")
                 {
@@ -192,7 +183,7 @@ namespace FoafNitroMod
                 }
                 else
                 {
-                    p += size; // skip other chunks
+                    p += size;
                 }
 
                 if (pcm != null && channels > 0 && sampleRate > 0 && (formatTag == 1 || formatTag == 3))
@@ -206,7 +197,7 @@ namespace FoafNitroMod
 
             float[] samples;
 
-            if (formatTag == 1) // PCM
+            if (formatTag == 1)
             {
                 if (bitsPerSample == 16)
                 {
@@ -231,7 +222,7 @@ namespace FoafNitroMod
                         int b1 = pcm[ip + 1] << 8;
                         int b2 = pcm[ip + 2] << 16;
                         int v = (b0 | b1 | b2);
-                        if ((v & 0x800000) != 0) v |= unchecked((int)0xFF000000); // sign-extend
+                        if ((v & 0x800000) != 0) v |= unchecked((int)0xFF000000);
                         samples[i] = Mathf.Clamp(v / 8388608f, -1f, 1f);
                         ip += 3;
                     }
@@ -253,7 +244,7 @@ namespace FoafNitroMod
                     throw new Exception("Unsupported PCM bit depth: " + bitsPerSample + " (use 16/24/32-bit PCM or 32-bit float).");
                 }
             }
-            else // IEEE float
+            else
             {
                 if (bitsPerSample != 32) throw new Exception("Unsupported float bit depth: " + bitsPerSample);
                 int count = pcm.Length / 4;
@@ -267,7 +258,6 @@ namespace FoafNitroMod
             return clip;
         }
 
-        // ------------------ Utilities ------------------
         private static bool TryCopyFromVehicleSound(GameObject? vehicleRoot)
         {
             try
@@ -290,7 +280,6 @@ namespace FoafNitroMod
                 if (vs != null)
                 {
                     var vt = vs.GetType();
-                    // Prefer EngineLoopSource (continuous loop)
                     var field = AccessTools.Field(vt, "EngineLoopSource") ?? AccessTools.Field(vt, "EngineIdleSource");
                     var ctrlObj = field != null ? field.GetValue(vs) : null;
                     AudioSource? tpl = null;
